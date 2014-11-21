@@ -1,0 +1,131 @@
+
+
+* Plan A
+
+
+** Generate centos.pem for ssh access to all 1box's created.
+
+** Make a OpenVZ 1box (w/ 5GB of disk), and package
+
+** Make a nested KVM 1box (w/ 25GB of disk)
+
+*** Copy OpenVZ 1box and windows image into KVM 1box,
+    but don't bother to register Wakame's images.
+
+* Plan A commands
+
+** setup
+git clone https://github.com/axsh/vmapp-vdc-1box && echo ,,,,, && \
+cd vmapp-vdc-1box/ && echo ,,,,, && \
+make && echo ,,,,, && \
+./prepare-vmimage.sh kvm i686 centos-6.4 && echo ,,,,, && \
+./prepare-vmimage.sh kvm x86_64 centos-6.4 && echo ,,,,, && \
+./prepare-vmimage.sh kvm x86_64 lb-centos6-stud && echo ,,,,, && \
+./prepare-vmimage.sh kvm x86_64 lbnode && echo ,,,,, && \
+./prepare-vmimage.sh kvm x86_64 vanilla && \
+echo ,,,,, && \
+./prepare-vmimage.sh openvz i686 centos-6.4 && echo ,,,,, && \
+./prepare-vmimage.sh openvz x86_64 centos-6.4 && echo ,,,,, && \
+./prepare-vmimage.sh openvz x86_64 lb-centos6-stud && echo ,,,,, && \
+./prepare-vmimage.sh openvz x86_64 lbnode && echo ,,,,, && \
+./prepare-vmimage.sh openvz x86_64 vanilla && echo ,,,,, && \
+yes | ssh-keygen -N "" -f centos.pem -C "centos@1box"
+
+** build openvz box
+
+sed -i 's/((10/((5/' disk.conf
+sed -i 's/((25/((5/' disk.conf
+echo ; cat disk.conf ; sleep 10
+
+time sudo ./box-ctl.sh build openvz
+
+
+
+** build kvm box
+
+sed -i 's/((10/((25/' disk.conf
+sed -i 's/((5/((25/' disk.conf
+echo ; cat disk.conf ; sleep 10
+
+time sudo ./box-ctl.sh build kvm
+
+
+* scratch
+** vmbuilder 
+*** copy and pasted into shell window:
+
+git clone https://github.com/axsh/vmapp-vdc-1box && echo ,,,,, && \
+cd vmapp-vdc-1box/ && echo ,,,,, && \
+make && echo ,,,,, && \
+./prepare-vmimage.sh kvm i686 centos-6.4 && echo ,,,,, && \
+./prepare-vmimage.sh kvm x86_64 centos-6.4 && echo ,,,,, && \
+./prepare-vmimage.sh kvm x86_64 lb-centos6-stud && echo ,,,,, && \
+./prepare-vmimage.sh kvm x86_64 lbnode && echo ,,,,, && \
+./prepare-vmimage.sh kvm x86_64 vanilla && echo ,,,,,
+
+sed -i 's/((10/((25/' disk.conf
+
+time sudo strace 2>>/tmp/st.log -f -e trace=execve -s 999 ./box-ctl.sh build kvm
+
+*** result:
+it worked:
+/ssh:triggers@192.168.2.24: #$ pwd ; ls -lsh *raw*
+/home/triggers/dev/nested-kvm-performance-experiments/vmapp-vdc-1box
+3.4G -rw-r--r-- 1 root root 25G Nov 21 13:57 1box-kvm.netfilter.x86_64.raw
+
+*** there is something for auto insertion of sshkey
+vmapp-vdc-1box/vmspec.conf:
+
+# $ yes | ssh-keygen -N "" -f centos.pem -C "centos@1box"
+ssh_user_key=${BASH_SOURCE[0]%/*}/${devel_user}.pem.pub
+[[ -f ${BASH_SOURCE[0]%/*}/${devel_user}.pem.pub ]] || ssh_user_key=
+
+
+** strace summary:
+
+[pid 13523] execve("/bin/bash", ["/bin/bash", "-c", "time sudo VDC_HYPERVISOR=kvm VDC_EDGE_NETWORKING=netfilter setarch x86_64 ./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh build --config-path=./vmbuilder.conf"], [/* 24 vars */]) = 0
+[pid 13524] execve("/bin/sudo", ["sudo", "VDC_HYPERVISOR=kvm", "VDC_EDGE_NETWORKING=netfilter", "setarch", "x86_64", "./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh", "build", "--config-path=./vmbuilder.conf"], [/* 24 vars */]) = 0
+[pid 13525] execve("/bin/setarch", ["setarch", "x86_64", "./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh", "build", "--config-path=./vmbuilder.conf"], [/* 20 vars */]) = 0
+[pid 13525] execve("./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh", ["./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh", "build", "--config-path=./vmbuilder.conf"], [/* 20 vars */]) = 0
+[pid 13551] execve("/home/triggers/dev/nested-kvm-performance-experiments/vmapp-vdc-1box/vmbuilder/kvm/rhel/6/misc/../vmbuilder.sh", ["/home/triggers/dev/nested-kvm-performance-experiments/vmapp-vdc-1box/vmbuilder/kvm/rhel/6/misc/../vmbuilder.sh", "--config-path=./vmbuilder.conf"], [/* 23 vars */]) = 0
+
+((where is ./vmbuilder.conf ???))
+ans: right at base of vmapp-vdc-1box.
+
+** another view
+execve("./box-ctl.sh", ["./box-ctl.sh", "build", "kvm"], [/* 20 vars */]) = 0
+[pid 13524] execve("/bin/sudo", ["sudo", "VDC_HYPERVISOR=kvm", "VDC_EDGE_NETWORKING=netfilter", "setarch", "x86_64", "./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh", "build", "--config-path=./vmbuilder.conf"], [/* 24 vars */]) = 0
+[pid 13525] execve("/bin/setarch", ["setarch", "x86_64", "./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh", "build", "--config-path=./vmbuilder.conf"], [/* 20 vars */]) = 0
+[pid 13525] execve("./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh", ["./vmbuilder/kvm/rhel/6/misc/kvm-ctl.sh", "build", "--config-path=./vmbuilder.conf"], [/* 20 vars */]) = 0
+[pid 13551] execve("/home/triggers/dev/nested-kvm-performance-experiments/vmapp-vdc-1box/vmbuilder/kvm/rhel/6/misc/../vmbuilder.sh", ["/home/triggers/dev/nested-kvm-performance-experiments/vmapp-vdc-1box/vmbuilder/kvm/rhel/6/misc/../vmbuilder.sh", "--config-path=./vmbuilder.conf"], [/* 23 vars */]) = 0
+
+
+
+* Thursday, November 13th
+** Just built 60G image with these commands:
+
+
+/ssh:triggers@192.168.2.24: #$ git clone https://github.com/axsh/vmapp-vdc-1box
+/ssh:triggers@192.168.2.24: #$ cd vmapp-vdc-1box/
+/ssh:triggers@192.168.2.24: #$ make
+/ssh:triggers@192.168.2.24: #$ ./prepare-vmimage.sh kvm i686 centos-6.4
+/ssh:triggers@192.168.2.24: #$ ./prepare-vmimage.sh kvm x86_64 centos-6.4
+/ssh:triggers@192.168.2.24: #$ ./prepare-vmimage.sh kvm x86_64 lb-centos6-stud
+/ssh:triggers@192.168.2.24: #$ ./prepare-vmimage.sh kvm x86_64 lbnode
+/ssh:triggers@192.168.2.24: #$ ./prepare-vmimage.sh kvm x86_64 vanilla
+/ssh:triggers@192.168.2.24: #$ cat disk.conf 
+rootsize=${rootsize:-$((60 * 1024))}
+swapsize=${swapsize:-0}
+optsize=${optsize:-0}
+/ssh:triggers@192.168.2.24: #$ time bash -x ./box-ctl.sh build kvm
+[INFO] Creating disk image: "/home/triggers/dev/fresh-1box-kvm/vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw" of size: 61440MB
+[INFO] Generated => /home/triggers/dev/fresh-1box-kvm/vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw
+real	8m47.369s
+user	2m19.799s
+sys	0m17.325s
+/ssh:triggers@192.168.2.24: #$ ls -lsh *raw*
+3.4G -rw-r--r-- 1 triggers triggers 60G Nov 13 19:22 1box-kvm.netfilter.x86_64.raw
+
+
+
+

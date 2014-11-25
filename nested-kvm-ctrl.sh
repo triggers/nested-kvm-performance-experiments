@@ -89,10 +89,9 @@ case "$cmd" in
 	;;
     -innerboot)
 	(
-	    echo 'exec 2>/tmp/2222'
 	    declare -f innerboot
 	    echo innerboot
-	) | dossh bash -x
+	) | dossh bash
 	;;
     *)
 	echo "Unknown command"

@@ -36,6 +36,29 @@ dossh()
     ssh centos@localhost -p "$SSH" -i vmapp-vdc-1box/centos.pem -q "$@"
 }
 
+innerboot()
+{
+    SSH=18822
+    MISC=18833
+    MONITOR=18877
+    WAKAME=18890
+
+    ncomp=27605
+
+    portforward=""
+    portforward="$portforward,hostfwd=tcp:0.0.0.0:$SSH-:22"  # ssh (for testing)
+    portforward="$portforward,hostfwd=tcp:0.0.0.0:$ncomp-:$ncomp"  # NComputing
+    portforward="$portforward,hostfwd=tcp:0.0.0.0:$WAKAME-:9000"  # test (for testing)
+    portforward="$portforward,hostfwd=tcp:0.0.0.0:$MISC-:7890"  # test (for testing)
+
+    setsid /usr/libexec/qemu-kvm -smp 2 -cpu qemu64,+vmx -m 1500 -hda 1box-openvz.netfilter.x86_64.raw \
+	   -vnc :66 -k ja \
+	   -monitor telnet::$MONITOR,server,nowait \
+	   -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
+	   -net user,net=10.0.2.0/24,vlan=0${portforward} >kvm.stdout 2>kvm.stderr &
+}
+
+
 cmd="$1"
 shift
 
@@ -43,8 +66,7 @@ shift
 
 case "$cmd" in
     -boot)
-	setsid qemu-kvm -smp 4 -cpu qemu64,+vmx -m 6000 -hda \
-	       "$BOOTIMG" \
+	setsid qemu-kvm -smp 4 -cpu qemu64,+vmx -m 6000 -hda "$BOOTIMG" \
 	       -vnc :69 -k ja \
 	       -monitor telnet::$MONITOR,server,nowait \
 	       -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
@@ -64,6 +86,13 @@ case "$cmd" in
     -init*setup) # not sparse
 	dossh '[ -f 1box-openvz.netfilter.x86_64.raw ]' ; echo $?
 	tar cv -C vmapp-vdc-1box 1box-openvz.netfilter.x86_64.raw | dossh 'tar xv'
+	;;
+    -innerboot)
+	(
+	    echo 'exec 2>/tmp/2222'
+	    declare -f innerboot
+	    echo innerboot
+	) | dossh bash -x
 	;;
     *)
 	echo "Unknown command"

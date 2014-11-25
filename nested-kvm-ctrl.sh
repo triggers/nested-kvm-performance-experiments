@@ -92,6 +92,16 @@ case "$cmd" in
 	    declare -f innerboot
 	    echo innerboot
 	) | dossh bash
+	sleep 1
+	dossh 'netstat -nltp | grep 18822' || reportfailed "Inner kvm did not start"
+	ccc=0
+	while [ "$(dossh nc -w 1 localhost 18822)" == "" ]; do
+	    ccc="$(( ccc + 1 ))"
+	done
+	echo "Took $ccc seconds"
+	;;
+    -killinner)
+	dossh killall qemu-kvm
 	;;
     *)
 	echo "Unknown command"

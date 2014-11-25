@@ -1,8 +1,6 @@
 
 
 * Plan A
-
-
 ** Generate centos.pem for ssh access to all 1box's created.
 
 ** Make a OpenVZ 1box (w/ 5GB of disk), and package

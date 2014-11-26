@@ -23,11 +23,8 @@ MISC=18833
 MONITOR=18877
 WAKAME=18890
 
-ncomp=27605
-
 portforward=""
 portforward="$portforward,hostfwd=tcp:0.0.0.0:$SSH-:22"  # ssh (for testing)
-portforward="$portforward,hostfwd=tcp:0.0.0.0:$ncomp-:$ncomp"  # NComputing
 portforward="$portforward,hostfwd=tcp:0.0.0.0:$WAKAME-:9000"  # test (for testing)
 portforward="$portforward,hostfwd=tcp:0.0.0.0:$MISC-:7890"  # test (for testing)
 
@@ -36,26 +33,34 @@ dossh()
     ssh centos@localhost -p "$SSH" -i vmapp-vdc-1box/centos.pem -q "$@"
 }
 
+if [ "$FAKELOCAL" != "" ]; then
+    dossh()
+    {
+	eval "$@"
+    }
+fi
+
 innerboot()
 {
-    SSH=18822
-    MISC=18833
-    MONITOR=18877
-    WAKAME=18890
-
-    ncomp=27605
+    SSH=16622
+    MISC=16633
+    MONITOR=16677
+    WAKAME=16690
 
     portforward=""
     portforward="$portforward,hostfwd=tcp:0.0.0.0:$SSH-:22"  # ssh (for testing)
-    portforward="$portforward,hostfwd=tcp:0.0.0.0:$ncomp-:$ncomp"  # NComputing
     portforward="$portforward,hostfwd=tcp:0.0.0.0:$WAKAME-:9000"  # test (for testing)
     portforward="$portforward,hostfwd=tcp:0.0.0.0:$MISC-:7890"  # test (for testing)
 
-    setsid /usr/libexec/qemu-kvm -smp 2 -cpu qemu64,+vmx -m 1500 -hda 1box-openvz.netfilter.x86_64.raw \
+    kvmbin=/usr/libexec/qemu-kvm
+    [ -f "$kvmbin" ] || kvmbin=/usr/bin/qemu-kvm
+    set -x
+    setsid  "$kvmbin" -smp 2 -cpu qemu64,+vmx -m 1500 -hda 1box-openvz.netfilter.x86_64.raw \
 	   -vnc :66 -k ja \
 	   -monitor telnet::$MONITOR,server,nowait \
 	   -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
-	   -net user,net=10.0.2.0/24,vlan=0${portforward} >kvm.stdout 2>kvm.stderr &
+	   -net user,net=10.0.2.0/24,vlan=0${portforward} >kvm2.stdout 2>kvm2.stderr &
+    echo $! | tee kvm2.pid
 }
 
 
@@ -93,10 +98,11 @@ case "$cmd" in
 	    echo innerboot
 	) | dossh bash
 	sleep 1
-	dossh 'netstat -nltp | grep 18822' || reportfailed "Inner kvm did not start"
+	dossh 'netstat -nltp | grep 16622' || reportfailed "Inner kvm did not start"
 	ccc=0
-	while [ "$(dossh nc -w 1 localhost 18822)" == "" ]; do
+	while [ "$(dossh nc -i 1 127.0.0.1 16622)" == "" ]; do
 	    ccc="$(( ccc + 1 ))"
+	    sleep 1
 	done
 	echo "Took $ccc seconds"
 	;;
@@ -107,4 +113,3 @@ case "$cmd" in
 	echo "Unknown command"
 	exit 255
 esac
-

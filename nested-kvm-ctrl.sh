@@ -246,6 +246,9 @@ do-kill()
     esac
 }
 
+exec 1> >(tee -a ./nested-kvm-tests.log)
+exec 2> >(while read -r ln ; do echo "stderr: $ln" ; done | tee -a ./nested-kvm-tests.log)
+
 parse-params "$@"
 for k in "${klist[@]}"; do
     do$thecmd "$k" "${theparams[@]}"

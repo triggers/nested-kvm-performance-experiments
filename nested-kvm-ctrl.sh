@@ -8,14 +8,50 @@ reportfailed()
     echo "$@" 1>&2
     exit 255
 }
-	   
+
+usage()
+{
+    cat <<EOF
+So far this help text is just informal design notes:
+
+The overall purpose of this script is to do repeatable tests that
+compare KVM running directly on the host with KVM running nested
+inside another KVM.
+
+There are 4 kernels to worry about.  For short reference, let's call them
+K1,K2,K3,and K4:
+(K1) bare metal/physical
+(K2) KVM running directly on the host/physical machine
+(K3) KVM to hold nested KVM
+(K4) The nested KVM
+
+The (planned) general form for calling this command is:
+   @0 {list of Kernels} -command {parameters}
+   e.g.  @0 3 4 -status  # give the status of the nested VM/kernel and
+			 # the VM/kernel hosting it
+
+The main focus is to compare (2) and (4), but the others affect the result.
+
+Each can have many configuration options, in the kernel itself, in the
+OS, and in the KVM hosting it.  For KVM this includes the compile
+times options and other parameters when starting it.  The -status
+command dumps as much of this info as practical for each VM/kernel.
+
+Maybe there basically only need to be three commands: -status, -boot,
+-doscript.  To keep things simple, stdout and stderr are automatically
+appended to one log (let's call it nested-kvm-tests.log).  Relevant
+status and time info should automatically be logged.  Each test script
+should output whatever configuration it adds and also output result
+data.
+
+All the configuration and output information should be formatted
+(somehow) to make extraction not-too-hard.
+
+EOF
+
+}
 
 MACADDR="52-54-00-11-a0-5b"
-
-#  (3) Once connected, everything seems to be done through one TCP
-#  connection on port 27605.  (Although the manual says many TCP ports
-#  need to be open: 27605, 27615, 3581, 3597, 3645, 3646, 3725) (...and
-#  these UDP ports: 1027, 1283, 3581, 3725)
 
 BOOTIMG=./vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw
 SSH=18822

@@ -99,11 +99,57 @@ innerboot()
     echo $! | tee kvm2.pid
 }
 
-
-cmd="$1"
-shift
-
 [ -d vmapp-vdc-1box ] || reportfailed "current directory not as expected"
+
+parse-params()
+{
+    klist=()
+    thecmd=""
+    theparams=()
+    for i in "$@"; do
+	case "$i" in
+	    [1234])
+		[ -z "$thecmd" ] && klist=("${klist[@]}" "$i")
+		[ -n "$thecmd" ] && theparams=("${theparams[@]}" "$i")
+		    ;;
+	    -boot|-status|-doscript)
+		thecmd="$i"
+		;;
+	    *)
+		[ -n "$thecmd" ] || reportfailed "parameter appeared before command: $i"
+		theparams=("${theparams[@]}" "$i")
+		;;
+	esac
+    done
+
+    [ -n "${klist[*]}" ] || reportfailed "no kernels specified"
+    [ -n "$thecmd" ] || reportfailed "no command given"
+}
+
+do-status()
+{
+    echo STATUS "$@"
+}
+
+do-boot()
+{
+    echo BOOT "$@"
+}
+
+do-doscript()
+{
+    echo SCRIPT "$@"
+}
+
+parse-params "$@"
+for k in "${klist[@]}"; do
+    do$thecmd "$k" "${theparams[@]}"
+done
+
+exit
+
+### rest to be deleted during refactoring:
+
 
 case "$cmd" in
     -boot)

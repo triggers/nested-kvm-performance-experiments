@@ -149,6 +149,9 @@ do-boot-k2()
 	    -net user,net=10.0.2.0/24,vlan=0${portforward} >k2/kvm.stdout 2>k2/kvm.stderr &
     echo $! | tee k2/kvm.pid
     echo "$kvmbin" >k2/kvm.binpath
+    while ! do-doscript 2 echo booted; do
+	sleep 1
+    done
 }
 
 do-boot-k3()
@@ -200,17 +203,24 @@ do-boot-k4()
 
     do-doscript 3 cat k4/kvm.pid >k4/kvm.pid
     do-doscript 3 cat k4/kvm.binpath >k4/kvm.binpath
+    echo -n "booting..."
+    while ! do-doscript 4 echo booted; do
+	echo -n "."
+	sleep 1
+    done
+    echo
 }
 
 do-boot()
 {
-    do-boot-k${1}
+    time do-boot-k${1}
 }
 
 do-doscript()
 {
     k="$1"
     shift
+    ct="-o ConnectTimeout=1"
     # Note: Piping output from if to the case.
     if [ "$*" = "bash" ]; then
 	# expect a script to come in from stdin
@@ -223,12 +233,12 @@ do-doscript()
 		;;
 	     2) ssh centos@localhost -p 11222 -i vmapp-vdc-1box/centos.pem -q bash
 		;;
-	     3) ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q bash
+	     3) ssh centos@localhost $ct -p 11322 -i vmapp-vdc-1box/centos.pem -q bash
 		;;
 #	     4) ssh centos@localhost -p 11322 -A -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q bash
 #		;;
 	     4) cat vmapp-vdc-1box/centos.pem | ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q 'cat >c.pem ; chmod 600 c.pem'
-		ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q -i c.pem bash
+		ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost $ct -p 11422 -q -i c.pem bash
 		;;
 	 esac
 }

@@ -136,7 +136,8 @@ do-status()
     # At boot, the info for each KVM is put in a ./k{2,3,4} directory.
     k="$1"
     shift
-    p=$(( k - 1 ))
+    p=1
+    [ "$k" = "4" ] && p=3
     echo "((( Begin info for K$k:"
     # KVM info
     if [ "$k" != "1" ]; then
@@ -194,6 +195,23 @@ do-boot-k2()
 	    -net user,net=10.0.2.0/24,vlan=0${portforward} >k2/kvm.stdout 2>k2/kvm.stderr &
     echo $! | tee k2/kvm.pid
     echo "$kvmbin" >k2/kvm.binpath
+}
+
+do-boot-k3()
+{
+    kill -0 "$(cat ./k3/kvm.pid)" && reportfailed "kvm already running"
+    rm ./k3 -fr
+    mkdir ./k3
+    pick-ports 3
+    pick-kvm
+    
+    setsid  "$kvmbin" -smp 4 -cpu qemu64,+vmx -m 6000 -hda ./vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw \
+	    -vnc :$VNC -k ja \
+	    -monitor telnet::$MONITOR,server,nowait \
+	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
+	    -net user,net=10.0.2.0/24,vlan=0${portforward} >k3/kvm.stdout 2>k3/kvm.stderr &
+    echo $! | tee k3/kvm.pid
+    echo "$kvmbin" >k3/kvm.binpath
 }
 
 do-boot()

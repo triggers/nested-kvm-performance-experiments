@@ -134,10 +134,28 @@ do-status()
     #    OS/kernel version
     #    OS/kernel configuration
     # At boot, the info for each KVM is put in a ./k{2,3,4} directory.
-    case "$1" in
-	1) :
-	;;
-    esac
+    k="$1"
+    shift
+    p=$(( k - 1 ))
+    echo "((( Begin info for K$k:"
+    # KVM info
+    if [ "$k" != "1" ]; then
+	cat <<EOF
+KVMVERSION="$(do-doscript $p $(< k$k/kvm.binpath) -version)"
+KVMPS="$(do-doscript $p ps --no-headers $(< k$k/kvm.pid))"
+EOF
+    else
+	cat <<EOF
+KVMVERSION=physical
+EOF
+    fi
+    # OS info
+    cat <<EOF
+SCHEDULER==
+$(echo 'find /sys -name scheduler 2>/dev/null | grep noop $(cat)' | ./nested-kvm-ctrl.sh $k -doscript bash)
+KERNELCMDLINE="$(./nested-kvm-ctrl.sh $k -doscript cat /proc/cmdline)"
+EOF
+    echo "End info for K$k )))"
 }
 
 pick-ports()

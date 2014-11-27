@@ -187,17 +187,23 @@ do-doscript()
 {
     k="$1"
     shift
-    echo "$*" | \
-	case "$k" in
-	    1) bash
-	       ;;
-	    2) ssh centos@localhost -p 11222 -i vmapp-vdc-1box/centos.pem -q bash
-	       ;;
-	    3) ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q bash
-	       ;;
-	    4) ssh centos@localhost -p 11322 -A -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q bash
-	       ;;
-	esac
+    # Note: Piping output from if to the case.
+    if [ "$*" = "bash" ]; then
+	# expect a script to come in from stdin
+	cat
+    else
+	# execute whatever is on the command line
+	echo "$*"
+    fi | case "$k" in
+	     1) bash
+		;;
+	     2) ssh centos@localhost -p 11222 -i vmapp-vdc-1box/centos.pem -q bash
+		;;
+	     3) ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q bash
+		;;
+	     4) ssh centos@localhost -p 11322 -A -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q bash
+		;;
+	 esac
 }
 
 parse-params "$@"

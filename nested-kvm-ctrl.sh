@@ -51,54 +51,6 @@ EOF
 
 }
 
-MACADDR="52-54-00-11-a0-5b"
-
-BOOTIMG=./vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw
-SSH=18822
-MISC=18833
-MONITOR=18877
-WAKAME=18890
-
-portforward=""
-portforward="$portforward,hostfwd=tcp:0.0.0.0:$SSH-:22"  # ssh (for testing)
-portforward="$portforward,hostfwd=tcp:0.0.0.0:$WAKAME-:9000"  # test (for testing)
-portforward="$portforward,hostfwd=tcp:0.0.0.0:$MISC-:7890"  # test (for testing)
-
-dossh()
-{
-    ssh centos@localhost -p "$SSH" -i vmapp-vdc-1box/centos.pem -q "$@"
-}
-
-if [ "$FAKELOCAL" != "" ]; then
-    dossh()
-    {
-	eval "$@"
-    }
-fi
-
-innerboot()
-{
-    SSH=16622
-    MISC=16633
-    MONITOR=16677
-    WAKAME=16690
-
-    portforward=""
-    portforward="$portforward,hostfwd=tcp:0.0.0.0:$SSH-:22"  # ssh (for testing)
-    portforward="$portforward,hostfwd=tcp:0.0.0.0:$WAKAME-:9000"  # test (for testing)
-    portforward="$portforward,hostfwd=tcp:0.0.0.0:$MISC-:7890"  # test (for testing)
-
-    kvmbin=/usr/libexec/qemu-kvm
-    [ -f "$kvmbin" ] || kvmbin=/usr/bin/qemu-kvm
-    set -x
-    setsid  "$kvmbin" -smp 2 -cpu qemu64,+vmx -m 1500 -hda 1box-openvz.netfilter.x86_64.raw \
-	   -vnc :66 -k ja \
-	   -monitor telnet::$MONITOR,server,nowait \
-	   -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
-	   -net user,net=10.0.2.0/24,vlan=0${portforward} >kvm2.stdout 2>kvm2.stderr &
-    echo $! | tee kvm2.pid
-}
-
 [ -d vmapp-vdc-1box ] || reportfailed "current directory not as expected"
 
 parse-params()
@@ -172,6 +124,8 @@ pick-ports()
     portforward="$portforward,hostfwd=tcp:0.0.0.0:$SSH-:22"  # ssh (for testing)
     portforward="$portforward,hostfwd=tcp:0.0.0.0:$WAKAME-:9000"  # test (for testing)
     portforward="$portforward,hostfwd=tcp:0.0.0.0:$MISC-:7890"  # test (for testing)
+
+    MACADDR="52-54-00-11-a0-5b"
 }
 
 pick-kvm()
@@ -289,24 +243,7 @@ exit
 
 
 case "$cmd" in
-    -boot)
-	setsid qemu-kvm -smp 4 -cpu qemu64,+vmx -m 6000 -hda "$BOOTIMG" \
-	       -vnc :69 -k ja \
-	       -monitor telnet::$MONITOR,server,nowait \
-	       -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
-	       -net user,net=10.0.2.0/24,vlan=0${portforward} >kvm.stdout 2>kvm.stderr &
-	echo "$MONITOR" >kvm.monitor
-	echo $! | tee kvm.pid
-	return 0
-	;;
-esac
 
-kill -0 "$(cat kvm.pid)" || reportfailed "kvm not running"
-
-case "$cmd" in
-    -ssh)
-	dossh "$@"
-	;;
     -init*setup) # not sparse
 	dossh '[ -f 1box-openvz.netfilter.x86_64.raw ]' ; echo $?
 	tar cv -C vmapp-vdc-1box 1box-openvz.netfilter.x86_64.raw | dossh 'tar xv'
@@ -328,7 +265,4 @@ case "$cmd" in
     -killinner)
 	dossh killall qemu-kvm
 	;;
-    *)
-	echo "Unknown command"
-	exit 255
 esac

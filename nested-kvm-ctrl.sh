@@ -64,7 +64,7 @@ parse-params()
 		[ -z "$thecmd" ] && klist=("${klist[@]}" "$i")
 		[ -n "$thecmd" ] && theparams=("${theparams[@]}" "$i")
 		    ;;
-	    -boot|-status|-doscript)
+	    -boot|-status|-doscript|-kill)
 		thecmd="$i"
 		;;
 	    *)
@@ -170,6 +170,7 @@ do-boot-k3()
 
 startkvm-for-k4()
 {
+    kill -0 "$(cat ./k4/kvm.pid 2>/dev/null )" 2>/dev/null && { echo "kvm already running" 1>&2 ; exit 255 ; }
     rm ./k4 -fr
     mkdir ./k4
     setsid  "$kvmbin" -smp 2 -cpu qemu64,+vmx -m 1500 -hda ./1box-openvz.netfilter.x86_64.raw \
@@ -230,6 +231,19 @@ do-doscript()
 		ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q -i c.pem bash
 		;;
 	 esac
+}
+
+do-kill()
+{
+    k="$1"
+    shift
+    case "$k" in
+	1) reportfailed "Cannot kill physical machine"
+	   ;;
+	2|3) kill $(cat k$k/kvm.pid)
+	     ;;
+	4) do-doscript 3 'kill $(cat k4/kvm.pid)'
+    esac
 }
 
 parse-params "$@"

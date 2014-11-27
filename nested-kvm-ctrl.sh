@@ -185,7 +185,21 @@ do-boot()
 
 do-doscript()
 {
-    echo SCRIPT "$@"
+    k="$1"
+    shift
+    case "$k" in
+	1) echo "$*" | bash
+	    ;;
+	2) echo "$*" | \
+		 ssh centos@localhost -p 11222 -i vmapp-vdc-1box/centos.pem -q bash
+	   ;;
+	3) echo "$*" | \
+		 ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q bash
+	   ;;
+	4) echo "$*" | \
+		 ssh centos@localhost -p 11322 -A -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q bash
+	   ;;
+    esac
 }
 
 parse-params "$@"

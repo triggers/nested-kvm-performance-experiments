@@ -128,12 +128,59 @@ parse-params()
 
 do-status()
 {
-    echo STATUS "$@"
+    # We want both information about KVM and the kernel/OS running in it:
+    #    KVM binary  (for K2, K3, & K4)
+    #    KVM parameters/configuration/status  (for K2, K3, & K4)
+    #    OS/kernel version
+    #    OS/kernel configuration
+    # At boot, the info for each KVM is put in a ./k{2,3,4} directory.
+    case "$1" in
+	1) :
+	;;
+    esac
+}
+
+pick-ports()
+{
+    knumber="$1"
+    SSH=11${knumber}22
+    MISC=11${knumber}33
+    MONITOR=11${knumber}77
+    WAKAME=11${knumber}90
+    VNC=6${knumber}
+
+    portforward=""
+    portforward="$portforward,hostfwd=tcp:0.0.0.0:$SSH-:22"  # ssh (for testing)
+    portforward="$portforward,hostfwd=tcp:0.0.0.0:$WAKAME-:9000"  # test (for testing)
+    portforward="$portforward,hostfwd=tcp:0.0.0.0:$MISC-:7890"  # test (for testing)
+}
+
+pick-kvm()
+{
+    kvmbin=/usr/libexec/qemu-kvm
+    [ -f "$kvmbin" ] || kvmbin=/usr/bin/qemu-kvm
+}
+
+do-boot-k2()
+{
+    kill -0 "$(cat ./k2/kvm.pid)" && reportfailed "kvm already running"
+    rm ./k2 -fr
+    mkdir ./k2
+    pick-ports 2
+    pick-kvm
+    
+    setsid  "$kvmbin" -smp 2 -cpu qemu64,+vmx -m 1500 -hda ./1box-openvz.netfilter.x86_64.raw \
+	    -vnc :$VNC -k ja \
+	    -monitor telnet::$MONITOR,server,nowait \
+	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
+	    -net user,net=10.0.2.0/24,vlan=0${portforward} >k2/kvm.stdout 2>k2/kvm.stderr &
+    echo $! | tee k2/kvm.pid
+    echo "$kvmbin" >k2/kvm.binpath
 }
 
 do-boot()
 {
-    echo BOOT "$@"
+    do-boot-k${1}
 }
 
 do-doscript()

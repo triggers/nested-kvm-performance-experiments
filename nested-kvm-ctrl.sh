@@ -227,7 +227,7 @@ do-doscript()
 		;;
 #	     4) ssh centos@localhost -p 11322 -A -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q bash
 #		;;
-	     4) cat vmapp-vdc-1box/centos.pem | ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem 'cat >c.pem ; chmod 600 c.pem'
+	     4) cat vmapp-vdc-1box/centos.pem | ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q 'cat >c.pem ; chmod 600 c.pem'
 		ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q -i c.pem bash
 		;;
 	 esac

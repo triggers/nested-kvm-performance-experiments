@@ -214,6 +214,39 @@ do-boot-k3()
     echo "$kvmbin" >k3/kvm.binpath
 }
 
+startkvm-for-k4()
+{
+    rm ./k4 -fr
+    mkdir ./k4
+    setsid  "$kvmbin" -smp 2 -cpu qemu64,+vmx -m 1500 -hda ./1box-openvz.netfilter.x86_64.raw \
+	    -vnc :$VNC -k ja \
+	    -monitor telnet::$MONITOR,server,nowait \
+	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
+	    -net user,net=10.0.2.0/24,vlan=0${portforward} >k4/kvm.stdout 2>k4/kvm.stderr &
+    echo $! | tee k4/kvm.pid
+    echo "$kvmbin" >k4/kvm.binpath
+}
+
+
+do-boot-k4()
+{
+    kill -0 "$(cat ./k4/kvm.pid 2>/dev/null)" 2>/dev/null && reportfailed "kvm already running"
+    rm ./k4 -fr
+    mkdir ./k4
+    
+    
+    ( declare -f pick-ports
+      declare -f pick-kvm
+      declare -f startkvm-for-k4
+      echo pick-ports 4
+      echo pick-kvm
+      echo startkvm-for-k4
+    ) | do-doscript 3 bash
+
+    do-doscript 3 cat k4/kvm.pid >k4/kvm.pid
+    do-doscript 3 cat k4/kvm.binpath >k4/kvm.binpath
+}
+
 do-boot()
 {
     do-boot-k${1}
@@ -237,7 +270,10 @@ do-doscript()
 		;;
 	     3) ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q bash
 		;;
-	     4) ssh centos@localhost -p 11322 -A -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q bash
+#	     4) ssh centos@localhost -p 11322 -A -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q bash
+#		;;
+	     4) cat vmapp-vdc-1box/centos.pem | ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem 'cat >c.pem ; chmod 600 c.pem'
+		ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost -p 11422 -q -i c.pem bash
 		;;
 	 esac
 }

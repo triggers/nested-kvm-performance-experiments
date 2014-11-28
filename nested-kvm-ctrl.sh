@@ -60,8 +60,8 @@ EOF
 
 default-environment-params()
 {
-    : ${vmcpus:=:2} ${vmmem:=6000}
-    : ${k3cpus:=:4} ${k3mem:=1500}
+    : ${vmcpus:=2} ${vmmem:=1500}
+    : ${k3cpus:=4} ${k3mem:=6000}
 }
 
 parse-params()

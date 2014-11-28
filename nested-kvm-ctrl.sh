@@ -120,8 +120,9 @@ EOF
     # OS info
     cat <<EOF
 SCHEDULER==
-$(echo 'find /sys -name scheduler 2>/dev/null | grep noop $(cat)' | ./nested-kvm-ctrl.sh $k -doscript bash)
-KERNELCMDLINE="$(./nested-kvm-ctrl.sh $k -doscript cat /proc/cmdline)"
+$(echo 'find /sys -name scheduler 2>/dev/null | grep noop $(cat)' | do-doscript $k bash)
+KERNELCMDLINE="$(do-doscript $k cat /proc/cmdline)"
+FLAGS="$(do-doscript $k cat /proc/cpuinfo | grep flags -m 1)"
 EOF
     echo "End info for K$k )))"
 }

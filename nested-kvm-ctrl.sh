@@ -152,6 +152,7 @@ pick-kvm()
 
 do-boot-k2()
 {
+    do-status 1
     kill -0 "$(cat ./k2/kvm.pid)" && reportfailed "kvm already running"
     rm ./k2 -fr
     mkdir ./k2
@@ -170,10 +171,12 @@ do-boot-k2()
 	echo -n "."
 	sleep 1
     done
+    do-status 2
 }
 
 do-boot-k3()
 {
+    do-status 1
     kill -0 "$(cat ./k3/kvm.pid)" && reportfailed "kvm already running"
     rm ./k3 -fr
     mkdir ./k3
@@ -195,6 +198,7 @@ do-boot-k3()
 	sleep 1
     done
     echo
+    do-status 3
 }
 
 startkvm-for-k4()
@@ -214,6 +218,8 @@ startkvm-for-k4()
 
 do-boot-k4()
 {
+    do-status 1
+    do-status 3
     kill -0 "$(cat ./k4/kvm.pid 2>/dev/null)" 2>/dev/null && reportfailed "kvm already running"
     rm ./k4 -fr
     mkdir ./k4
@@ -240,11 +246,16 @@ do-boot-k4()
 	sleep 1
     done
     echo
+    do-status 4
 }
 
 do-boot()
 {
+    echo "[[[out Begin boot: $*"
+    echo "[[[err Begin boot: $*" 1>&2
     time do-boot-k${1}
+    echo "    End boot: $*  out]]]"
+    echo "    End boot: $*  err]]]" 1>&2
 }
 
 do-doscript()

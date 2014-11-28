@@ -219,12 +219,17 @@ do-boot-k4()
     mkdir ./k4
     
     do-doscript 3 true || reportfailed "VM/kernel 3 not booted yet"
-    ( declare -f pick-ports
-      declare -f pick-kvm
-      declare -f startkvm-for-k4
-      echo pick-ports 4
-      echo pick-kvm
-      echo startkvm-for-k4
+    (
+	echo 'exec 2>/tmp/start-k4.trace'
+	echo set -x
+	echo vmcpus=$vmcpus
+	echo vmmem=$vmmem
+	declare -f pick-ports
+	declare -f pick-kvm
+	declare -f startkvm-for-k4
+	echo pick-ports 4
+	echo pick-kvm
+	echo startkvm-for-k4
     ) | do-doscript 3 bash
 
     do-doscript 3 cat k4/kvm.pid >k4/kvm.pid

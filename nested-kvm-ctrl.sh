@@ -169,6 +169,14 @@ do-boot-k3()
 	    -net user,net=10.0.2.0/24,vlan=0${portforward} >k3/kvm.stdout 2>k3/kvm.stderr &
     echo $! | tee k3/kvm.pid
     echo "$kvmbin" >k3/kvm.binpath
+    # The time here may not be used for benchmarks, but putting this here makes
+    # the code synchronous and easier to script
+    echo -n "booting..."
+    while ! do-doscript 3 echo booted; do
+	echo -n "."
+	sleep 1
+    done
+    echo
 }
 
 startkvm-for-k4()
@@ -192,7 +200,7 @@ do-boot-k4()
     rm ./k4 -fr
     mkdir ./k4
     
-    
+    do-doscript 3 true || reportfailed "VM/kernel 3 not booted yet"
     ( declare -f pick-ports
       declare -f pick-kvm
       declare -f startkvm-for-k4

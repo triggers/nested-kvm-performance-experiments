@@ -47,11 +47,22 @@ data.
 All the configuration and output information should be formatted
 (somehow) to make extraction not-too-hard.
 
+Extra parameters handled by this script are handled by simple
+environment variables.  For command line flexibility, any parameter
+with an "=" in it is evaled so that environment variables can be set
+at the end of the command line.
+
 EOF
 
 }
 
 [ -d vmapp-vdc-1box ] || reportfailed "current directory not as expected"
+
+default-environment-params()
+{
+    : ${vmcpus:=:2} ${vmmem:=6000}
+    : ${k3cpus:=:4} ${k3mem:=1500}
+}
 
 parse-params()
 {
@@ -60,6 +71,9 @@ parse-params()
     theparams=()
     for i in "$@"; do
 	case "$i" in
+	    *=*) echo "evaluating: $i"
+		 eval "$i"  ## experimental hack for easier UI
+		 ;;
 	    [1234])
 		[ -z "$thecmd" ] && klist=("${klist[@]}" "$i")
 		[ -n "$thecmd" ] && theparams=("${theparams[@]}" "$i")
@@ -142,14 +156,16 @@ do-boot-k2()
     pick-ports 2
     pick-kvm
     
-    setsid  "$kvmbin" -smp 2 -cpu qemu64,+vmx -m 1500 -hda ./1box-openvz.netfilter.x86_64.raw \
+    setsid  "$kvmbin" -smp "$vmcpus" -cpu qemu64,+vmx -m "$vmmem" -hda ./1box-openvz.netfilter.x86_64.raw \
 	    -vnc :$VNC -k ja \
 	    -monitor telnet::$MONITOR,server,nowait \
 	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
 	    -net user,net=10.0.2.0/24,vlan=0${portforward} >k2/kvm.stdout 2>k2/kvm.stderr &
     echo $! | tee k2/kvm.pid
     echo "$kvmbin" >k2/kvm.binpath
+    echo -n "booting..."
     while ! do-doscript 2 echo booted; do
+	echo -n "."
 	sleep 1
     done
 }
@@ -162,7 +178,7 @@ do-boot-k3()
     pick-ports 3
     pick-kvm
     
-    setsid  "$kvmbin" -smp 4 -cpu qemu64,+vmx -m 6000 -hda ./vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw \
+    setsid  "$kvmbin" -smp "$k3cpus" -cpu qemu64,+vmx -m "$k3mem" -hda ./vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw \
 	    -vnc :$VNC -k ja \
 	    -monitor telnet::$MONITOR,server,nowait \
 	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
@@ -184,7 +200,7 @@ startkvm-for-k4()
     kill -0 "$(cat ./k4/kvm.pid 2>/dev/null )" 2>/dev/null && { echo "kvm already running" 1>&2 ; exit 255 ; }
     rm ./k4 -fr
     mkdir ./k4
-    setsid  "$kvmbin" -smp 2 -cpu qemu64,+vmx -m 1500 -hda ./1box-openvz.netfilter.x86_64.raw \
+    setsid  "$kvmbin" -smp "$vmcpus" -cpu qemu64,+vmx -m "$vmmem" -hda ./1box-openvz.netfilter.x86_64.raw \
 	    -vnc :$VNC -k ja \
 	    -monitor telnet::$MONITOR,server,nowait \
 	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
@@ -239,7 +255,7 @@ do-doscript()
     fi | case "$k" in
 	     1) bash
 		;;
-	     2) ssh centos@localhost -p 11222 -i vmapp-vdc-1box/centos.pem -q bash
+	     2) ssh centos@localhost $ct -p 11222 -i vmapp-vdc-1box/centos.pem -q bash
 		;;
 	     3) ssh centos@localhost $ct -p 11322 -i vmapp-vdc-1box/centos.pem -q bash
 		;;
@@ -267,6 +283,7 @@ do-kill()
 exec 1> >(tee -a ./nested-kvm-tests.log)
 exec 2> >(while read -r ln ; do echo "stderr: $ln" ; done | tee -a ./nested-kvm-tests.log)
 
+default-environment-params
 parse-params "$@"
 for k in "${klist[@]}"; do
     do$thecmd "$k" "${theparams[@]}"

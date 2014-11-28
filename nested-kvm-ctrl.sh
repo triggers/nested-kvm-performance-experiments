@@ -78,7 +78,7 @@ parse-params()
 		[ -z "$thecmd" ] && klist=("${klist[@]}" "$i")
 		[ -n "$thecmd" ] && theparams=("${theparams[@]}" "$i")
 		    ;;
-	    -boot|-status|-doscript|-kill)
+	    -boot|-status|-doscript|-kill|-dotest)
 		thecmd="$i"
 		;;
 	    *)
@@ -104,6 +104,7 @@ do-status()
     shift
     p=1
     [ "$k" = "4" ] && p=3
+    echo
     echo "((( Begin info for K$k:"
     # KVM info
     if [ "$k" != "1" ]; then
@@ -265,6 +266,35 @@ do-doscript()
 		ssh centos@localhost -p 11322 -i vmapp-vdc-1box/centos.pem -q ssh centos@localhost $ct -p 11422 -q -i c.pem bash
 		;;
 	 esac
+}
+
+do-dotest() # wrap a piped in test script with status
+{
+    k="$1"
+    echo ; echo
+    echo "[[[out Begin test: $*"
+    echo "[[[err Begin test: $*" 1>&2
+    case "$k" in
+	1)
+	    do-status 1
+	    ;;
+	2)
+	    do-status 1
+	    do-status 2
+	    ;;
+	3)
+	    do-status 1
+	    do-status 3
+	    ;;
+	4)
+	    do-status 1
+	    do-status 3
+	    do-status 4
+	    ;;
+    esac
+    time do-doscript "$k" bash
+    echo "    End test: $*  out]]]"
+    echo "    End test: $*  err]]]" 1>&2
 }
 
 do-kill()

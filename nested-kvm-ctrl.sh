@@ -62,6 +62,8 @@ default-environment-params()
 {
     : ${vmcpus:=2} ${vmmem:=1500}
     : ${k3cpus:=4} ${k3mem:=6000}
+
+    : ${diskopts:=1}  # 1 = "-hda $diskpath", see below for other options
 }
 
 parse-params()
@@ -150,16 +152,42 @@ pick-kvm()
     [ -f "$kvmbin" ] || kvmbin=/usr/bin/qemu-kvm
 }
 
+pick-disk-parameters()
+{
+    k="$1"
+    case "$k" in
+	2)  diskpath="./1box-openvz.netfilter.x86_64.raw"
+	    ;;
+	3)  diskpath="./vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw"
+	    ;;
+	4)  diskpath="./1box-openvz.netfilter.x86_64.raw"
+	    ;;
+	*) reportfailed "bug"
+	   ;;
+    esac
+    case "$diskopts" in
+	1)  diskparams=( -hda $diskpath )
+	    ;;
+	2)  diskparams=( -drive file="$diskpath",id=centos-drive,cache=none,aio=native,if=none
+			 -device virtio-blk-pci,drive=centos-drive,bootindex=0,bus=pci.0,addr=0x4
+			 )
+	    ;;
+	*) reportfailed "invalid diskopt: $diskopts"
+	   ;;
+    esac
+}
+
 do-boot-k2()
 {
     do-status 1
-    kill -0 "$(cat ./k2/kvm.pid)" && reportfailed "kvm already running"
+    kill -0 "$(cat ./k2/kvm.pid)" && reportfailed "kvm 2 already running"
     rm ./k2 -fr
     mkdir ./k2
     pick-ports 2
     pick-kvm
+    pick-disk-parameters 2
     
-    setsid  "$kvmbin" -smp "$vmcpus" -cpu qemu64,+vmx -m "$vmmem" -hda ./1box-openvz.netfilter.x86_64.raw \
+    setsid  "$kvmbin" -smp "$vmcpus" -cpu qemu64,+vmx -m "$vmmem" "${diskparams[@]}" \
 	    -vnc :$VNC -k ja \
 	    -monitor telnet::$MONITOR,server,nowait \
 	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
@@ -177,13 +205,14 @@ do-boot-k2()
 do-boot-k3()
 {
     do-status 1
-    kill -0 "$(cat ./k3/kvm.pid)" && reportfailed "kvm already running"
+    kill -0 "$(cat ./k3/kvm.pid)" && reportfailed "kvm 3 already running"
     rm ./k3 -fr
     mkdir ./k3
     pick-ports 3
     pick-kvm
+    pick-disk-parameters 3
     
-    setsid  "$kvmbin" -smp "$k3cpus" -cpu qemu64,+vmx -m "$k3mem" -hda ./vmapp-vdc-1box/1box-kvm.netfilter.x86_64.raw \
+    setsid  "$kvmbin" -smp "$k3cpus" -cpu qemu64,+vmx -m "$k3mem" "${diskparams[@]}" \
 	    -vnc :$VNC -k ja \
 	    -monitor telnet::$MONITOR,server,nowait \
 	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
@@ -203,10 +232,13 @@ do-boot-k3()
 
 startkvm-for-k4()
 {
-    kill -0 "$(cat ./k4/kvm.pid 2>/dev/null )" 2>/dev/null && { echo "kvm already running" 1>&2 ; exit 255 ; }
+    kill -0 "$(cat ./k4/kvm.pid 2>/dev/null )" 2>/dev/null && { echo "kvm 4 already running" 1>&2 ; exit 255 ; }
     rm ./k4 -fr
     mkdir ./k4
-    setsid  "$kvmbin" -smp "$vmcpus" -cpu qemu64,+vmx -m "$vmmem" -hda ./1box-openvz.netfilter.x86_64.raw \
+    pick-ports 4
+    pick-kvm
+    pick-disk-parameters 4
+    setsid  "$kvmbin" -smp "$vmcpus" -cpu qemu64,+vmx -m "$vmmem" "${diskparams[@]}" \
 	    -vnc :$VNC -k ja \
 	    -monitor telnet::$MONITOR,server,nowait \
 	    -net nic,vlan=0,model=virtio,macaddr=$MACADDR \
@@ -218,27 +250,27 @@ startkvm-for-k4()
 
 do-boot-k4()
 {
+    do-doscript 3 true || reportfailed "VM/kernel 3 not booted yet"
     do-status 1
     do-status 3
-    kill -0 "$(cat ./k4/kvm.pid 2>/dev/null)" 2>/dev/null && reportfailed "kvm already running"
     rm ./k4 -fr
     mkdir ./k4
     
-    do-doscript 3 true || reportfailed "VM/kernel 3 not booted yet"
     (
-	echo 'exec 2>/tmp/start-k4.trace'
-	echo set -x
+	#echo 'exec 2>/tmp/start-k4.trace'
+	#echo set -x
 	echo vmcpus=$vmcpus
 	echo vmmem=$vmmem
+	echo diskopts=$diskopts
+	declare -f reportfailed
 	declare -f pick-ports
 	declare -f pick-kvm
+	declare -f pick-disk-parameters
 	declare -f startkvm-for-k4
-	echo pick-ports 4
-	echo pick-kvm
 	echo startkvm-for-k4
     ) | do-doscript 3 bash
 
-    do-doscript 3 cat k4/kvm.pid >k4/kvm.pid
+    do-doscript 3 cat k4/kvm.pid >k4/kvm.pid || reportfailed "Boot failed"
     do-doscript 3 cat k4/kvm.binpath >k4/kvm.binpath
     echo -n "booting..."
     while ! do-doscript 4 echo booted; do

@@ -47,6 +47,24 @@ echo ; cat disk.conf ; sleep 10
 
 time sudo ./box-ctl.sh build kvm
 
+* misc test log
+
+** -hda, vs virtio-blk-pci
+Tue Dec  2 18:34:24 JST 2014
+
+*** for K2:
+stderr: real	0m27.664s
+stderr: real	0m27.698s
+stderr: real	0m25.832s virtio-blk-pci
+stderr: real	0m25.780s virtio-blk-pci
+stderr: real	0m27.680s
+
+*** for K4:
+stderr: real	0m54.959s
+stderr: real	0m47.808s virtio-blk-pci
+stderr: real	0m47.842s virtio-blk-pci
+stderr: real	0m56.563s
+
 
 * reference
 ** KVM Forum
@@ -112,7 +130,7 @@ execve("./box-ctl.sh", ["./box-ctl.sh", "build", "kvm"], [/* 20 vars */]) = 0
 
 
 
-* Thursday, November 13th
+* (macnotes2) Thursday, November 13th
 ** Just built 60G image with these commands:
 
 

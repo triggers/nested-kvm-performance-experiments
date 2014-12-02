@@ -48,6 +48,19 @@ echo ; cat disk.conf ; sleep 10
 time sudo ./box-ctl.sh build kvm
 
 
+* reference
+** KVM Forum
+https://www.youtube.com/channel/UCRCSQmAOh7yzgheq-emy1xA
+
+*** Nested Virtualization by Bandan Das & Jan Kiszska
+https://www.youtube.com/watch?v=GvenpiRc1Ac
+
+https://www.youtube.com/watch?v=GvenpiRc1Ac#t=2755
+
+slides:
+https://drive.google.com/file/d/0BzyAwvVlQckeTng2UmlyamVZVkE/view
+
+
 * scratch
 ** vmbuilder 
 *** copy and pasted into shell window:

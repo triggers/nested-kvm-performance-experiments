@@ -1,4 +1,34 @@
 
+* misc test log
+
+** -hda, vs virtio-blk-pci
+Tue Dec  2 18:34:24 JST 2014
+
+*** for K2:
+stderr: real	0m27.664s
+stderr: real	0m27.698s
+stderr: real	0m25.832s virtio-blk-pci
+stderr: real	0m25.780s virtio-blk-pci
+stderr: real	0m27.680s
+
+*** for K4:
+stderr: real	0m54.959s
+stderr: real	0m47.808s virtio-blk-pci
+stderr: real	0m47.842s virtio-blk-pci
+stderr: real	0m56.563s
+
+** data-plane (=3) has no sig difference for boot test
+
+Tried for K2,K3, K4.  It *does* seem to be supported in
+0.12.1.
+
+** sudo sysctl kernel.sched_compat_yield=1 (on K3)
+
+no difference for K4 boot.
+
+** deadline scheduler on K3, no difference
+
+** deadline in K3 and noop in K4 made no difference
 
 * Plan A
 ** Generate centos.pem for ssh access to all 1box's created.
@@ -47,27 +77,70 @@ echo ; cat disk.conf ; sleep 10
 
 time sudo ./box-ctl.sh build kvm
 
-* misc test log
 
-** -hda, vs virtio-blk-pci
-Tue Dec  2 18:34:24 JST 2014
+* optimizations
 
-*** for K2:
-stderr: real	0m27.664s
-stderr: real	0m27.698s
-stderr: real	0m25.832s virtio-blk-pci
-stderr: real	0m25.780s virtio-blk-pci
-stderr: real	0m27.680s
+** data-plane
 
-*** for K4:
-stderr: real	0m54.959s
-stderr: real	0m47.808s virtio-blk-pci
-stderr: real	0m47.842s virtio-blk-pci
-stderr: real	0m56.563s
+*** http://blog.vmsplice.net/2013/03/new-in-qemu-14-high-performance-virtio.html
 
+**** If you do not use libvirt the QEMU command-line is:
+
+qemu -drive if=none,id=drive0,cache=none,aio=native,format=raw,file=path/to/disk.img \
+     -device virtio-blk,drive=drive0,scsi=off,config-wce=off,x-data-plane=on
+
+using this:
+     -device virtio-blk,drive=centos-drive,scsi=off,config-wce=off,x-data-plane=on
+
+**** qtree output
+And yes, it appears I am in fact using virtio-blk-data-plane (see snippet from my info qtree output below):
+
+dev: virtio-blk-pci, id "virtio-disk0"
+class = 0x0
+ioeventfd = on
+vectors = 2
+x-data-plane = on
+
+** scheduler
+
+*** there exists a (per) process scheduler option
+
+http://doc.opensuse.org/products/draft/SLES/SLES-tuning_sd_draft/cha.tuning.taskscheduler.html
+
+*** hmmm
+sched_compat_yield
+Enables the aggressive yield behavior of the old 0(1) scheduler. Java applications that use synchronization extensively perform better with this value set to 1. Only use it when you see a drop in performance. The default value is 0.
+
+Expect applications that depend on the sched_yield() syscall behavior to perform better with the value set to 1.
+
+
+*** how to set the I/O scheduler
+
+http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/Documentation/block/switching-sched.txt?id=HEAD
+
+echo 'sudo bash -c "echo deadline >/sys/devices/pci0000:00/0000:00:04.0/virtio1/block/vda/queue/scheduler"' | ./nested-kvm-ctrl.sh  3 -doscript  bash
+
+*** in grub.conf
+
+Grub command line – elevator=deadline/cfq/noop
 
 * reference
-** KVM Forum
+** concise summary of recommendations
+http://drup.org/kvm-disk-performance
+
+The optimal configuration is (usually) as follows:
+
+On the host, set elevator=deadline
+Use virtio and only virtio
+use raw LVs whenever possible. Qcow2 gives overhead. Files on a FS also have overhead
+in the VM use the elevator=noop (See blog.bodhizazen.net/…rformance)
+both in host and VM, use noatime,nodiratime in fstab wherever possible
+Make sure the virtio drivers are up to date, especially the windows ones.
+
+
+** http://www.redhat.com/summit/2011/presentations/summit/decoding_the_code/wednesday/wagner_w_420_kvm_performance_improvements_and_optimizations.pdf
+
+** 2014 KVM Forum
 https://www.youtube.com/channel/UCRCSQmAOh7yzgheq-emy1xA
 
 *** Nested Virtualization by Bandan Das & Jan Kiszska

@@ -172,6 +172,15 @@ pick-disk-parameters()
 			 -device virtio-blk-pci,drive=centos-drive,bootindex=0,bus=pci.0,addr=0x4
 			 )
 	    ;;
+	3)  diskparams=( -drive file="$diskpath",id=centos-drive,cache=none,aio=native,if=none
+			 -device virtio-blk,drive=centos-drive,scsi=off,config-wce=off,x-data-plane=on
+			 )
+	    ;;
+	3v1)  diskparams=( -drive file="$diskpath",id=centos-drive,cache=none,aio=native,if=none
+			 -device virtio-blk,drive=centos-drive,scsi=off,x-data-plane=on
+			 )
+	      #  0.12.1 complains about config-wce
+	    ;;
 	*) reportfailed "invalid diskopt: $diskopts"
 	   ;;
     esac

@@ -60,6 +60,9 @@ EOF
 
 default-environment-params()
 {
+    : ${ORGPRE:="* "}  # prefix for making log hierarchy browseable through emacs' org-mode
+    export ORGPRE
+    
     : ${vmcpus:=2} ${vmmem:=1500}
     : ${k3cpus:=4} ${k3mem:=6000}
 
@@ -107,7 +110,7 @@ do-status()
     p=1
     [ "$k" = "4" ] && p=3
     echo
-    echo "((( Begin info for K$k:"
+    echo "$ORGPRE ((( Begin info for K$k:"
     # KVM info
     if [ "$k" != "1" ]; then
 	cat <<EOF
@@ -292,9 +295,11 @@ do-boot-k4()
 
 do-boot()
 {
-    echo "[[[out Begin boot: $*"
+    echo "$ORGPRE [[[out Begin boot: $*"
+    ORGPRE="*$ORGPRE"
+    sleep 0.5 # Make sure stdout gets written out through its filter before stderr
     echo "[[[err Begin boot: $*" 1>&2
-    time do-boot-k${1}
+    time ( do-boot-k${1} ; echo "$ORGPRE post boot" )
     echo "    End boot: $*  out]]]"
     echo "    End boot: $*  err]]]" 1>&2
 }
@@ -329,8 +334,10 @@ do-doscript()
 do-dotest() # wrap a piped in test script with status
 {
     k="$1"
-    echo ; echo
-    echo "[[[out Begin test: $*"
+    shift
+    echo "$ORGPRE [[[out Begin test: $*"
+    ORGPRE="*$ORGPRE"
+    sleep 0.5 # Make sure stdout gets written out through its filter before stderr
     echo "[[[err Begin test: $*" 1>&2
     case "$k" in
 	1)
@@ -350,7 +357,9 @@ do-dotest() # wrap a piped in test script with status
 	    do-status 4
 	    ;;
     esac
-    time do-doscript "$k" bash
+    echo "$ORGPRE test script from: $*"  # the test script should send its name to -dotest
+    ORGPRE="*$ORGPRE"
+    time ( do-doscript "$k" bash ; echo "$ORGPRE post test" )
     echo "    End test: $*  out]]]"
     echo "    End test: $*  err]]]" 1>&2
 }

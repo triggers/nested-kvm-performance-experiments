@@ -107,6 +107,13 @@ x-data-plane = on
 
 http://doc.opensuse.org/products/draft/SLES/SLES-tuning_sd_draft/cha.tuning.taskscheduler.html
 
+To retrieve the real-time attributes of an existing task:
+
+saturn.example.com:~ # chrt -p 16244
+pid 16244's current scheduling policy: SCHED_OTHER
+pid 16244's current scheduling priority: 0
+
+
 *** hmmm
 sched_compat_yield
 Enables the aggressive yield behavior of the old 0(1) scheduler. Java applications that use synchronization extensively perform better with this value set to 1. Only use it when you see a drop in performance. The default value is 0.
@@ -124,7 +131,32 @@ echo 'sudo bash -c "echo deadline >/sys/devices/pci0000:00/0000:00:04.0/virtio1/
 
 Grub command line – elevator=deadline/cfq/noop
 
+* strategies
+
+** do fork test
+
+** repeat tests on simpler hardware
+
+
 * reference
+** interesting optimization of KVM involving NUMA and nodes
+
+http://www.linux-kvm.org/wiki/images/5/53/2011-forum-Improving-out-of-box-performance-v1.4.pdf
+
+*** google: "numa balancing kvm"
+
+**** http://events.linuxfoundation.jp/sites/events/files/slides/LCJ2014-How_NUMA_Balancing_Moves_KVM_Guests.pdf
+**** http://rhsummit.files.wordpress.com/2014/04/shak-larry-jeder-perf-and-tuning-summit14-part1-final.pdf
+How to manage NUMA manually
+•Research NUMA topology of each system
+•Make a resource plan for each system
+•Bind both CPUs and Memory
+• Might also consider devices and IRQs
+•Use numactl for native jobs:
+•“numactl -N <nodes> -m <nodes> <workload>”
+•Use numatune for libvirt started guests
+•Edit xml: <numatune> <memory mode="strict" nodeset="1-2"/> 
+
 ** concise summary of recommendations
 http://drup.org/kvm-disk-performance
 

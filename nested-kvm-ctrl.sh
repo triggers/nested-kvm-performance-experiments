@@ -62,6 +62,7 @@ default-environment-params()
 {
     : ${ORGPRE:="* "}  # prefix for making log hierarchy browseable through emacs' org-mode
     export ORGPRE
+    : ${logname:="./nested-kvm-tests.log"}
     
     : ${vmcpus:=2} ${vmmem:=1500}
     : ${k3cpus:=4} ${k3mem:=6000}
@@ -82,8 +83,8 @@ parse-params()
 	    [1234])
 		[ -z "$thecmd" ] && klist=("${klist[@]}" "$i")
 		[ -n "$thecmd" ] && theparams=("${theparams[@]}" "$i")
-		    ;;
-	    -boot|-status|-doscript|-kill|-dotest)
+		;;
+	    -boot|-status|-doscript|-kill|-dotest|-cleanlog)
 		thecmd="$i"
 		;;
 	    *)
@@ -92,9 +93,6 @@ parse-params()
 		;;
 	esac
     done
-
-    [ -n "${klist[*]}" ] || reportfailed "no kernels specified"
-    [ -n "$thecmd" ] || reportfailed "no command given"
 }
 
 do-status()
@@ -377,14 +375,33 @@ do-kill()
     esac
 }
 
-exec 2> >(while read -r ln ; do echo "stderr: $ln" ; done | tee -a ./nested-kvm-tests.log)
-exec 1> >(tee -a ./nested-kvm-tests.log)
+do-cleanlog()
+{
+    thelog="$logname"
+    [ "$1" != "" ] && thelog="$1"
+    IFS=""
+    while read -r ln; do
+	if [[ "$ln" == \** ]]; then
+	    echo "$ln"
+	fi
+    done <"$thelog"
+}
 
 default-environment-params
+
+exec 2> >(while read -r ln ; do echo "stderr: $ln" ; done | tee -a "$logname")
+exec 1> >(tee -a "$logname")
+
 parse-params "$@"
-for k in "${klist[@]}"; do
-    do$thecmd "$k" "${theparams[@]}"
-done
+[ -n "$thecmd" ] || reportfailed "no command given"
+if [ "$thecmd" = "-cleanlog" ]; then
+    do-cleanlog "${theparams[@]}"
+else
+    [ -n "${klist[*]}" ] || reportfailed "no kernels specified"
+    for k in "${klist[@]}"; do
+	do$thecmd "$k" "${theparams[@]}"
+    done
+fi
 
 exit
 

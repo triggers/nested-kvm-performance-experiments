@@ -389,14 +389,14 @@ do-cleanlog()
 
 default-environment-params
 
-exec 2> >(while read -r ln ; do echo "stderr: $ln" ; done | tee -a "$logname")
-exec 1> >(tee -a "$logname")
-
 parse-params "$@"
 [ -n "$thecmd" ] || reportfailed "no command given"
 if [ "$thecmd" = "-cleanlog" ]; then
     do-cleanlog "${theparams[@]}"
 else
+    exec 2> >(while read -r ln ; do echo "stderr: $ln" ; done | tee -a "$logname")
+    exec 1> >(tee -a "$logname")
+
     [ -n "${klist[*]}" ] || reportfailed "no kernels specified"
     for k in "${klist[@]}"; do
 	do$thecmd "$k" "${theparams[@]}"

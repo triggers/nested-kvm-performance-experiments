@@ -389,11 +389,11 @@ log-infosection()
 {
     startln="$1"
     echo "$startln" # a better summary line would be nice, but not necessary for now
+    echo "in log-infosection"
 }
 
 do-cleanlog()
 {
-    exec 8>&1  # give the test script sneeky access to stdio when parsing
     thelog="$logname"
     [ "$1" != "" ] && thelog="$1"
     IFS=""
@@ -407,11 +407,20 @@ do-cleanlog()
 			       ;;
 		*)
 		    # process the rest of the section with the test script, if any
-		    
 		    if [ "$sectiontestscript" != "" ]; then
 			read sname rest <<<"$sectiontestscript"
-			startln="$("$sname" -cleanuplog "$rest")"
-			[ "$startln" != "" ] && log-newsection "$startln"
+			exec 8< <($(readlink -f "$sname") -cleanlog "$rest")
+			# filter the output with the following loop
+			IFS=""
+			while read -r ln; do
+			    case "$ln" in
+				*Begin\ test*) log-newsection "$ln"
+					       break; # (the test script should have exited too)
+					       ;;
+				*) echo "$ln" # pass through unchanged
+				   ;;
+			    esac
+			done <&8
 		    fi
 		
 	    esac

@@ -378,7 +378,12 @@ do-kill()
 log-newsection()
 {
     startln="$1"
-    echo "$startln" # a better summary line would be nice, but not necessary for now
+    case "$startln" in
+	*Begin\ test*|*Begin\ boot*) echo "$ORGPRE Begin ${startln#*Begin}"
+		       ;;
+	*)  echo "Don't know how to parse: $startln"
+	    ;;
+    esac
     sectiontestscript=""
     if [[ "${startln#*test: }" == test* ]]; then
 	sectiontestscript="${startln#*test: }"
@@ -388,22 +393,51 @@ log-newsection()
 log-infosection()
 {
     startln="$1"
-    echo "$startln" # a better summary line would be nice, but not necessary for now
-    echo "in log-infosection"
+    IFS=""
+    kvmversion="metal"
+    cpus=""
+    while read -r ln; do
+	case "$ln" in
+	    End\ info*) break
+			;;
+	    KVMVERSION*version*)
+		kvmversion="${ln#*version }"
+		kvmversion="${kvmversion%%,*}"
+		kvmversion="${kvmversion%% *}"
+		;;
+	    KVMPS*-smp*)
+		cpus="${ln#*-smp }"
+		cpus="${cpus%% *}"
+		;;
+	esac
+    done
+    echo KVMVERSION="$kvmversion"
+    [ -n "$cpus" ] && echo CPUS="$cpus"
 }
 
 do-cleanlog()
 {
     thelog="$logname"
     [ "$1" != "" ] && thelog="$1"
+    echo "$ORGPRE Log summary for $thelog"
+    ORGPRE="*$ORGPRE"
+
+    inpostsection=false
     IFS=""
     while read -r ln; do
 	if [[ "$ln" == \** ]]; then
+	    if [[ "$ln" == *post\ test* ]] || [[ "$ln" == *post\ boot* ]]; then
+		inpostsection=true
+	    fi
 	    case "$ln" in
-		*Begin\ test*) log-newsection "$ln"
+		*Begin\ test*|*Begin\ boot*) log-newsection "$ln"
+					     inpostsection=false
 			       ;;
 		
 		*Begin\ info*) log-infosection "$ln"
+			       ;;
+		*real*) elapsetime="${ln#*real}"
+		    $inpostsection && echo "ELAPSE=$elapsetime"
 			       ;;
 		*)
 		    # process the rest of the section with the test script, if any
@@ -413,19 +447,27 @@ do-cleanlog()
 			# filter the output with the following loop
 			IFS=""
 			while read -r ln; do
-			    case "$ln" in
-				*Begin\ test*) log-newsection "$ln"
-					       break; # (the test script should have exited too)
-					       ;;
-				*) echo "$ln" # pass through unchanged
-				   ;;
-			    esac
+			    if [[ "$ln" == *post\ test* ]] || [[ "$ln" == *post\ boot* ]]; then
+				inpostsection=true
+			    else
+				case "$ln" in
+				    *Begin\ test*|*Begin\ boot*) log-newsection "$ln"
+						   break; # (the test script should have exited too)
+						   ;;
+				    *real*) elapsetime="${ln#*real}"
+					    $inpostsection && echo "ELAPSE=$elapsetime"
+					    ;;
+				    *) echo "$ln" # pass through unchanged
+				       ;;
+				esac
+			    fi
 			done <&8
 		    fi
 		
 	    esac
 	fi
     done <"$thelog"
+    echo "* end"
 }
 
 default-environment-params

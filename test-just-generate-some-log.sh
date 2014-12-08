@@ -14,10 +14,12 @@ thelogparser()
     IFS=""
     while read -r ln; do
 	case "$ln" in
-	    *Begin\ test*) echo "$ln"
+	    *Begin\ test*|*Begin\ boot*) echo "$ln"
 			   break;
 			   ;;
-	    *) echo "$ln,,"
+	    *real*|*post*) echo "$ln"
+		    ;;
+	    *) :
 	       ;;
 	esac
     done

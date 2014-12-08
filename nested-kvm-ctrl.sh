@@ -446,20 +446,18 @@ do-cleanlog()
 			# filter the output with the following loop
 			IFS=""
 			while read -r ln; do
-			    if [[ "$ln" == *post\ test* ]] || [[ "$ln" == *post\ boot* ]]; then
-				inpostsection=true
-			    else
-				case "$ln" in
-				    *Begin\ test*|*Begin\ boot*) log-newsection "$ln"
-						   break; # (the test script should have exited too)
-						   ;;
-				    *real*) elapsetime="${ln#*real}"
-					    $inpostsection && echo "ELAPSE=$elapsetime"
-					    ;;
-				    *) echo "$ln" # pass through unchanged
-				       ;;
-				esac
-			    fi
+			    case "$ln" in
+				*Begin\ test*|*Begin\ boot*) log-newsection "$ln"
+							     break; # (the test script should have exited too)
+							     ;;
+				*post\ test*|*post\ boot*) inpostsection=true
+							   ;;
+				*real*) elapsetime="${ln#*real}"
+					$inpostsection && echo "ELAPSE=$elapsetime"
+					;;
+				*) echo "$ln" # pass through unchanged
+				   ;;
+			    esac
 			done <&8
 		    fi
 		

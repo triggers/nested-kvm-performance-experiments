@@ -379,7 +379,7 @@ log-newsection()
 {
     startln="$1"
     case "$startln" in
-	*Begin\ test*|*Begin\ boot*) echo "$ORGPRE Begin ${startln#*Begin}"
+	*out\ Begin\ test*|*out\ Begin\ boot*) echo "$ORGPRE Begin ${startln#*Begin}"
 		       ;;
 	*)  echo "Don't know how to parse: $startln"
 	    ;;
@@ -423,47 +423,37 @@ do-cleanlog()
     ORGPRE="*$ORGPRE"
 
     inpostsection=false
+    usingtestscript=false
+    exec 7<"$thelog"  # keep primary copy of fd safe at 7
     IFS=""
     while read -r ln; do
-	if [[ "$ln" == \** ]]; then
-	    case "$ln" in
-		*Begin\ test*|*Begin\ boot*) log-newsection "$ln"
-					     inpostsection=false
-			       ;;
-		
-		*Begin\ info*) log-infosection "$ln"
-			       ;;
-		*post\ test*|*post\ boot*) inpostsection=true
-					   ;;
-		*real*) elapsetime="${ln#*real}"
+	case "$ln" in
+	    *out\ Begin\ test*|*out\ Begin\ boot*) log-newsection "$ln"
+					 inpostsection=false
+					 usingtestscript=false
+					 exec 0<&7 # reset stdin to normal
+					 ;;
+	    *Begin\ info*) log-infosection "$ln"
+			   ;;
+	    *post\ test*|*post\ boot*) inpostsection=true
+				       ;;
+	    *real*) elapsetime="${ln#*real}"
 		    $inpostsection && echo "ELAPSE=$elapsetime"
-			       ;;
-		*)
+		    ;;
+	    *)
+		if $usingtestscript; then
+		    echo "$ln" # pass through unchanged
+		else
 		    # process the rest of the section with the test script, if any
 		    if [ "$sectiontestscript" != "" ]; then
 			read sname rest <<<"$sectiontestscript"
-			exec 8< <($(readlink -f "$sname") -cleanlog "$rest")
-			# filter the output with the following loop
-			IFS=""
-			while read -r ln; do
-			    case "$ln" in
-				*Begin\ test*|*Begin\ boot*) log-newsection "$ln"
-							     break; # (the test script should have exited too)
-							     ;;
-				*post\ test*|*post\ boot*) inpostsection=true
-							   ;;
-				*real*) elapsetime="${ln#*real}"
-					$inpostsection && echo "ELAPSE=$elapsetime"
-					;;
-				*) echo "$ln" # pass through unchanged
-				   ;;
-			    esac
-			done <&8
+			exec 0< <($(readlink -f "$sname") -cleanlog "$rest" <&7)
+			usingtestscript=true
 		    fi
-		
-	    esac
-	fi
-    done <"$thelog"
+		    # else ignore the line of log text
+		fi
+	esac
+    done 0<&7
     echo "* end"
 }
 

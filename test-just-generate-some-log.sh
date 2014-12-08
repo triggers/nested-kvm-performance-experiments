@@ -14,7 +14,7 @@ thelogparser()
     IFS=""
     while read -r ln; do
 	case "$ln" in
-	    *Begin\ test*|*Begin\ boot*) echo "$ln"
+	    *out\ Begin\ test*|*out\ Begin\ boot*) echo "$ln"
 			   break;
 			   ;;
 	    *real*|*post*) echo "$ln"

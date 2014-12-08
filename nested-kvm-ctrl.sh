@@ -375,14 +375,46 @@ do-kill()
     esac
 }
 
+log-newsection()
+{
+    startln="$1"
+    echo "$startln" # a better summary line would be nice, but not necessary for now
+    sectiontestscript=""
+    if [[ "${startln#*test: }" == test* ]]; then
+	sectiontestscript="${startln#*test: }"
+    fi
+}
+
+log-infosection()
+{
+    startln="$1"
+    echo "$startln" # a better summary line would be nice, but not necessary for now
+}
+
 do-cleanlog()
 {
+    exec 8>&1  # give the test script sneeky access to stdio when parsing
     thelog="$logname"
     [ "$1" != "" ] && thelog="$1"
     IFS=""
     while read -r ln; do
 	if [[ "$ln" == \** ]]; then
-	    echo "$ln"
+	    case "$ln" in
+		*Begin\ test*) log-newsection "$ln"
+			       ;;
+		
+		*Begin\ info*) log-infosection "$ln"
+			       ;;
+		*)
+		    # process the rest of the section with the test script, if any
+		    
+		    if [ "$sectiontestscript" != "" ]; then
+			read sname rest <<<"$sectiontestscript"
+			startln="$("$sname" -cleanuplog "$rest")"
+			[ "$startln" != "" ] && log-newsection "$startln"
+		    fi
+		
+	    esac
 	fi
     done <"$thelog"
 }

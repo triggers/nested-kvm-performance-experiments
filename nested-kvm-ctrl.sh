@@ -440,7 +440,7 @@ do-cleanlog()
 	    *real*) elapsetime="${ln#*real}"
 		    $inpostsection && echo "ELAPSE=$elapsetime"
 		    ;;
-	    *)
+	    \**)
 		if $usingtestscript; then
 		    echo "$ln" # pass through unchanged
 		else
@@ -452,6 +452,10 @@ do-cleanlog()
 		    fi
 		    # else ignore the line of log text
 		fi
+		    ;;
+	    \**)
+		: # ignore
+		    ;;
 	esac
     done 0<&7
     echo "* end"

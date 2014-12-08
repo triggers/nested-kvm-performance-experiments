@@ -426,9 +426,6 @@ do-cleanlog()
     IFS=""
     while read -r ln; do
 	if [[ "$ln" == \** ]]; then
-	    if [[ "$ln" == *post\ test* ]] || [[ "$ln" == *post\ boot* ]]; then
-		inpostsection=true
-	    fi
 	    case "$ln" in
 		*Begin\ test*|*Begin\ boot*) log-newsection "$ln"
 					     inpostsection=false
@@ -436,6 +433,8 @@ do-cleanlog()
 		
 		*Begin\ info*) log-infosection "$ln"
 			       ;;
+		*post\ test*|*post\ boot*) inpostsection=true
+					   ;;
 		*real*) elapsetime="${ln#*real}"
 		    $inpostsection && echo "ELAPSE=$elapsetime"
 			       ;;

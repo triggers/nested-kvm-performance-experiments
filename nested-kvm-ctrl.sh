@@ -415,8 +415,8 @@ log-infosection()
 		;;
 	esac
     done
-    echo KVMVERSION="$kvmversion"
-    [ -n "$cpus" ] && echo CPUS="$cpus"
+    echo "*$ORGPRE KVMVERSION=$kvmversion"
+    [ -n "$cpus" ] && echo "*$ORGPRE CPUS=$cpus"
 }
 
 do-cleanlog()
@@ -471,7 +471,7 @@ do-cleanlog()
 		;;
 	    *real*)
 		elapsetime="${ln#*real}"
-		$inpostsection && echo "ELAPSE=$elapsetime"
+		$inpostsection && echo "*$ORGPRE ELAPSE=$elapsetime"
 		;;
 	    *FAILED:*)
 		echo "FAILED=\"${ln#*FAILED:}\""

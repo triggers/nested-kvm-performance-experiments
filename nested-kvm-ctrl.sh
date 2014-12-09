@@ -73,7 +73,6 @@ EOF
 export SESSION_START='\* *[[[out Begin*'
 export section_START='\*\* *((( Begin*'
 export postout_START='\*\* *((( Begin post output )))*'
-export postout_START='*post*' # this line will be deleted soon
 
 info_section_START='\*\* *((( Begin info*'
 test_section_START='\*\* *((( Begin test*'
@@ -317,7 +316,7 @@ do-boot()
     ORGPRE="*$ORGPRE"
     sleep 0.5 # Make sure stdout gets written out through its filter before stderr
     echo "[[[err Begin boot: $*" 1>&2
-    time ( do-boot-k${1} ; echo "$ORGPRE post boot" )
+    time ( do-boot-k${1} ; echo "$ORGPRE ((( Begin post output )))" )
     echo "    End boot: $*  out]]]"
     echo "    End boot: $*  err]]]" 1>&2
 }
@@ -376,8 +375,7 @@ do-dotest() # wrap a piped in test script with status
 	    ;;
     esac
     echo "$ORGPRE ((( Begin test: $*"  # the test script should send its name to -dotest
-    ORGPRE="*$ORGPRE"
-    time ( do-doscript "$k" bash ; echo "$ORGPRE post test" )
+    time ( do-doscript "$k" bash ; echo "$ORGPRE ((( Begin post output )))" )
     echo "      end test )))"
     echo "    End test: $*  out]]]"
     echo "    End test: $*  err]]]" 1>&2

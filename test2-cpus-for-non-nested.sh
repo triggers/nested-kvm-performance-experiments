@@ -2,7 +2,9 @@
 
 cat "$0" >>nested-kvm-tests.log
 
-echo =============================================================================
+thetest()
+{
+    echo =============================================================================
 
     for guestcpus in 1 2 4 8 ; do
 
@@ -13,9 +15,29 @@ echo ===========================================================================
 
     done
 
-echo Finished              test                   1
+    echo Finished              test                   1
 
-echo =============================================================================
+    echo =============================================================================
+}
+
+thelogparser()
+{
+    IFS=""
+    while read -r ln; do
+	case "$ln" in
+	    *) : ;;
+	esac
+    done
+}
+
+case "$1" in
+    -cleanlog) thelogparser "$@"
+	       ;;
+    -dotest) thetest "$@"
+	     ;;
+    *) echo "bad cmd to $0: $1" 1>&2
+       ;;
+esac
 
 # first results:
 # /ssh:triggers@192.168.2.24: #$ grep -o 'smp....\|real.*' nested-kvm-tests.log

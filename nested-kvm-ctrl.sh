@@ -396,21 +396,6 @@ do-kill()
     esac
 }
 
-log-newsection()
-{
-    startln="$1"
-    case "$startln" in
-	$SESSION_START) echo "$ORGPRE Begin ${startln#*Begin}"
-		       ;;
-	*)  echo "Don't know how to parse: $startln"
-	    ;;
-    esac
-    sectiontestscript=""
-    if [[ "${startln#*test: }" == test* ]]; then
-	sectiontestscript="${startln#*test: }"
-    fi
-}
-
 log-infosection()
 {
     startln="$1"
@@ -451,7 +436,7 @@ do-cleanlog()
 	sendln=""
 	case "$ln" in
 	    $SESSION_START)
-		log-newsection "$ln"
+		echo "$ORGPRE Begin ${ln#*Begin}"
 		inpostsection=false
 		;;
 	    $info_section_START)

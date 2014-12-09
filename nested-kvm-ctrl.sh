@@ -5,7 +5,7 @@
 
 reportfailed()
 {
-    echo "$@" 1>&2
+    echo "FAILED: $@" 1>&2
     exit 255
 }
 
@@ -474,6 +474,9 @@ do-cleanlog()
 	    *real*)
 		elapsetime="${ln#*real}"
 		$inpostsection && echo "ELAPSE=$elapsetime"
+		;;
+	    *FAILED:*)
+		echo "FAILED=\"${ln#*FAILED:}\""
 		;;
 	    *)
 		: # ignore

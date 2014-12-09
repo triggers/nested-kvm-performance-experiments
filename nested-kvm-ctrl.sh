@@ -39,7 +39,7 @@ command dumps as much of this info as practical for each VM/kernel.
 
 Maybe there basically only need to be three commands: -status, -boot,
 -doscript.  To keep things simple, stdout and stderr are automatically
-appended to one log (let's call it nested-kvm-tests.log).  Relevant
+appended to one log (let's call it main-test.log).  Relevant
 status and time info should automatically be logged.  Each test script
 should output whatever configuration it adds and also output result
 data.
@@ -82,7 +82,7 @@ default-environment-params()
 {
     : ${ORGPRE:="* "}  # prefix for making log hierarchy browseable through emacs' org-mode
     export ORGPRE
-    : ${logname:="./nested-kvm-tests.log"}
+    : ${logname:="./main-test.log"}
     
     : ${vmcpus:=2} ${vmmem:=1500}
     : ${k3cpus:=4} ${k3mem:=6000}

@@ -453,7 +453,7 @@ do-cleanlog()
 		    # else ignore the line of log text
 		fi
 		    ;;
-	    \**)
+	    *)
 		: # ignore
 		    ;;
 	esac

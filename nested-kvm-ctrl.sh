@@ -471,7 +471,11 @@ do-cleanlog()
 		;;
 	    *real*)
 		elapsetime="${ln#*real}"
-		$inpostsection && echo "*$ORGPRE ELAPSE=$elapsetime"
+		min="${elapsetime%m*}"
+		sec="${elapsetime#*m}"
+		sec="${sec%.*}"
+		frac="${elapsetime#*.}"
+		$inpostsection && echo "*$ORGPRE ELAPSE=$(( ( 60 * min ) + sec )).${frac%s}"
 		;;
 	    *FAILED:*)
 		echo "FAILED=\"${ln#*FAILED:}\""

@@ -44,19 +44,36 @@ status and time info should automatically be logged.  Each test script
 should output whatever configuration it adds and also output result
 data.
 
-All the configuration and output information should be formatted
-(somehow) to make extraction not-too-hard.
-
 Extra parameters handled by this script are handled by simple
 environment variables.  For command line flexibility, any parameter
 with an "=" in it is evaled so that environment variables can be set
 at the end of the command line.
+
+All the configuration and output information should be formatted
+(somehow) to make extraction not-too-hard.  (update) The must-do rules
+for making the extraction not-too-hard are, so far): (1) Each separate
+boot or test run must write a line with the following prefix to the
+log: "* [[[out Begin ".  The rest of the line can be anything.  (2)
+Any section with data to parse must begin begin with "** ((( Begin ".
+The rest of the line will give hints on where to send the text for
+parsing.  In particular, "** ((( Begin post output )))" will always be
+automatically inserted, to mark where the output from the overall
+"time" command will appear (along with any post test garbage that
+makes its way to stdout).  That's it.  Only two levels.  Some somewhat
+arbitrary patterns to use carefully, but only three of them.
 
 EOF
 
 }
 
 [ -d vmapp-vdc-1box ] || reportfailed "current directory not as expected"
+
+# Glob patterns
+
+export SESSION_START='\* *[[[out Begin*'
+export section_START='\*\* *((( Begin*'
+export postout_START='\*\* *((( Begin post output )))*'
+export postout_START='*post*' # this line will be deleted soon
 
 default-environment-params()
 {
@@ -379,7 +396,7 @@ log-newsection()
 {
     startln="$1"
     case "$startln" in
-	*out\ Begin\ test*|*out\ Begin\ boot*) echo "$ORGPRE Begin ${startln#*Begin}"
+	$SESSION_START) echo "$ORGPRE Begin ${startln#*Begin}"
 		       ;;
 	*)  echo "Don't know how to parse: $startln"
 	    ;;
@@ -428,14 +445,14 @@ do-cleanlog()
     IFS=""
     while read -r ln; do
 	case "$ln" in
-	    *out\ Begin\ test*|*out\ Begin\ boot*) log-newsection "$ln"
+	    $SESSION_START) log-newsection "$ln"
 					 inpostsection=false
 					 usingtestscript=false
 					 exec 0<&7 # reset stdin to normal
 					 ;;
 	    *Begin\ info*) log-infosection "$ln"
 			   ;;
-	    *post\ test*|*post\ boot*) inpostsection=true
+	    $postout_START) inpostsection=true
 				       ;;
 	    *real*) elapsetime="${ln#*real}"
 		    $inpostsection && echo "ELAPSE=$elapsetime"

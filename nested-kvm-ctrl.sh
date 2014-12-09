@@ -400,10 +400,18 @@ log-infosection()
     IFS=""
     kvmversion="metal"
     cpus=""
+    schedlist=""
     while read -r ln; do
 	case "$ln" in
-	    End\ info*) break
-			;;
+	    End\ info*)
+		break
+		;;
+	    *scheduler*\[*\]*)
+		[[ "$ln" == *sr0* ]] && continue # ignore cdrom
+		selected="${ln%\]*}"
+		selected="${selected##*\[}"
+		schedlist="$schedlist"$'\n'"$selected" # put cr in there for use with uniq later
+		;;
 	    KVMVERSION*version*)
 		kvmversion="${ln#*version }"
 		kvmversion="${kvmversion%%,*}"
@@ -416,6 +424,8 @@ log-infosection()
 	esac
     done
     echo "*$ORGPRE KVMVERSION=$kvmversion"
+    schedlist="$(echo "$schedlist" | sort -u)"
+    echo "*$ORGPRE SCHEDULER=$(IFS=$' \t\n' ; eval echo $schedlist)"
     [ -n "$cpus" ] && echo "*$ORGPRE CPUS=$cpus"
 }
 

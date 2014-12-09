@@ -2,7 +2,7 @@
 
 thetest()
 {
-    ./nested-kvm-ctrl.sh 2 -dotest "${0##*/}" <<EOF
+    ./nested-kvm-ctrl.sh 2 -dotest "${0##*/} $*" <<EOF
 sleep 2
 echo hey
 pstree -pa \$\$

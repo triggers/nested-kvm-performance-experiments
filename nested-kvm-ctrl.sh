@@ -77,7 +77,6 @@ export postout_START='*post*' # this line will be deleted soon
 
 info_section_START='\*\* *((( Begin info*'
 test_section_START='\*\* *((( Begin test*'
-test_section_START='*from*' # this line will be deleted soon
 
 default-environment-params()
 {
@@ -376,9 +375,10 @@ do-dotest() # wrap a piped in test script with status
 	    do-status 4
 	    ;;
     esac
-    echo "$ORGPRE test script from: $*"  # the test script should send its name to -dotest
+    echo "$ORGPRE ((( Begin test: $*"  # the test script should send its name to -dotest
     ORGPRE="*$ORGPRE"
     time ( do-doscript "$k" bash ; echo "$ORGPRE post test" )
+    echo "      end test )))"
     echo "    End test: $*  out]]]"
     echo "    End test: $*  err]]]" 1>&2
 }
@@ -459,7 +459,7 @@ do-cleanlog()
 		;;
 	    $test_section_START)
 		sectiontestscript="${ln#*: }"
-		read sname rest <<<"$sectiontestscript"
+		IFS=' ' read sname rest <<<"$sectiontestscript"
 		fullpath="$(readlink -f "$sname")"
 		if [ -x "$fullpath" ]; then
 		    # The following code is really just a pipe: P1 | P2

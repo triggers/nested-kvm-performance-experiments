@@ -103,7 +103,7 @@ parse-params()
 		[ -z "$thecmd" ] && klist=("${klist[@]}" "$i")
 		[ -n "$thecmd" ] && theparams=("${theparams[@]}" "$i")
 		;;
-	    -boot|-status|-doscript|-kill|-dotest|-cleanlog)
+	    -boot|-status|-doscript|-kill|-dotest|-cleanlog|-dotable)
 		thecmd="$i"
 		;;
 	    *)
@@ -485,12 +485,25 @@ do-cleanlog()
     echo "* end"
 }
 
+do-dotable()
+{
+    IFS=""
+    tac | while read ln; do
+	      case "$ln" in
+		   \*\*\**) printf "%15s" "${ln#*=}"  ;;
+		   \*\**) echo ;;
+	      esac
+	  done | tac
+}
+
 default-environment-params
 
 parse-params "$@"
 [ -n "$thecmd" ] || reportfailed "no command given"
 if [ "$thecmd" = "-cleanlog" ]; then
     do-cleanlog "${theparams[@]}"
+elif [ "$thecmd" = "-dotable" ]; then
+    do-cleanlog "${theparams[@]}" | do-dotable
 else
     exec 2> >(while read -r ln ; do echo "stderr: $ln" ; done | tee -a "$logname")
     exec 1> >(tee -a "$logname")

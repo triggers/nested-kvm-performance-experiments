@@ -9,22 +9,18 @@ pstree -pa \$\$
 EOF
 }
 
-thelogparser()
+thelogparser()  # just some simple parsing for testing the script itself
 {
     IFS=""
+    ccc=0
     while read -r ln; do
 	case "$ln" in
-	    $SESSION_START|$section_START)
-		echo "$ln"
-		break;
-		;;
-	    $postout_START|*real*) 
-		echo "$ln"
-		;;
-	    *) :
-	       ;;
+	    bash*) echo BASHPID="${ln#*,}" ;;
+	    *) : ;;
 	esac
+	(( ccc++ ))
     done
+    echo "LINES=$ccc"
 }
 
 case "$1" in

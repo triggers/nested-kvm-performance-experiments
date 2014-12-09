@@ -75,6 +75,10 @@ export section_START='\*\* *((( Begin*'
 export postout_START='\*\* *((( Begin post output )))*'
 export postout_START='*post*' # this line will be deleted soon
 
+info_section_START='\*\* *((( Begin info*'
+test_section_START='\*\* *((( Begin test*'
+test_section_START='*from*' # this line will be deleted soon
+
 default-environment-params()
 {
     : ${ORGPRE:="* "}  # prefix for making log hierarchy browseable through emacs' org-mode
@@ -440,41 +444,55 @@ do-cleanlog()
     ORGPRE="*$ORGPRE"
 
     inpostsection=false
-    usingtestscript=false
-    exec 7<"$thelog"  # keep primary copy of fd safe at 7
+
+    ln=""
     IFS=""
-    while read -r ln; do
+    while [ "$ln" != "" ] || read -r ln; do
+	sendln=""
 	case "$ln" in
 	    $SESSION_START) log-newsection "$ln"
 					 inpostsection=false
-					 usingtestscript=false
-					 exec 0<&7 # reset stdin to normal
 					 ;;
-	    *Begin\ info*) log-infosection "$ln"
-			   ;;
+	    $info_section_START)
+		log-infosection "$ln"
+		;;
+	    $test_section_START)
+		sectiontestscript="${ln#*: }"
+		read sname rest <<<"$sectiontestscript"
+		fullpath="$(readlink -f "$sname")"
+		if [ -x "$fullpath" ]; then
+		    # The following code is really just a pipe: P1 | P2
+		    # but allows us to not send the next START line to P2
+		    # P2:
+		    exec 8> >("$fullpath" -cleanlog "$rest")
+		    filterpid=$!
+		    # P1:
+		    echo "$ln" >&8
+		    while read -r sendln; do
+			case "$sendln" in
+			    $section_START|$SESSION_START|$postout_START) break ;;
+			    *) echo "$sendln" >&8 ;;
+			esac
+		    done
+		    exec 8>&-
+		    while [ -d /proc/$filterpid ]; do # eliminate race
+			sleep .1
+		    done
+		else
+		    echo "$ln"
+		fi
+		;;
 	    $postout_START) inpostsection=true
 				       ;;
 	    *real*) elapsetime="${ln#*real}"
 		    $inpostsection && echo "ELAPSE=$elapsetime"
 		    ;;
-	    \**)
-		if $usingtestscript; then
-		    echo "$ln" # pass through unchanged
-		else
-		    # process the rest of the section with the test script, if any
-		    if [ "$sectiontestscript" != "" ]; then
-			read sname rest <<<"$sectiontestscript"
-			exec 0< <($(readlink -f "$sname") -cleanlog "$rest" <&7)
-			usingtestscript=true
-		    fi
-		    # else ignore the line of log text
-		fi
-		    ;;
 	    *)
 		: # ignore
 		    ;;
 	esac
-    done 0<&7
+	ln="$sendln" # maybe push something back on the input stream (like ungetc)
+    done <"$thelog"
     echo "* end"
 }
 

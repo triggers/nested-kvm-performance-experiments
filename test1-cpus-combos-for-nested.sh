@@ -2,30 +2,53 @@
 
 cat "$0" >>nested-kvm-tests.log
 
-echo =============================================================================
+thetest()
+{
+    echo =============================================================================
 
-./nested-kvm-ctrl.sh 4 -kill
-./nested-kvm-ctrl.sh 3 -kill
-
-for hostcpus in 1 2 4 8; do
-
+    ./nested-kvm-ctrl.sh 4 -kill
     ./nested-kvm-ctrl.sh 3 -kill
-    ./nested-kvm-ctrl.sh 3 -boot k3cpus=$hostcpus
 
-    for guestcpus in 1 2 4; do
+    for hostcpus in 1 2 4 8; do
 
-	echo "====================== hosts: $hostcpus =========== guests: $guestcpus ================================="
+	./nested-kvm-ctrl.sh 3 -kill
+	./nested-kvm-ctrl.sh 3 -boot k3cpus=$hostcpus
 
-	./nested-kvm-ctrl.sh 4 -kill
-	./nested-kvm-ctrl.sh 4 -boot vmcpus=$guestcpus
+	for guestcpus in 1 2 4; do
+
+	    echo "====================== hosts: $hostcpus =========== guests: $guestcpus ================================="
+
+	    ./nested-kvm-ctrl.sh 4 -kill
+	    ./nested-kvm-ctrl.sh 4 -boot vmcpus=$guestcpus
+
+	done
 
     done
 
-done
+    echo Finished              test                   1
 
-echo Finished              test                   1
+    echo =============================================================================
 
-echo =============================================================================
+}
+
+thelogparser()
+{
+    IFS=""
+    while read -r ln; do
+	case "$ln" in
+	    *) : ;;
+	esac
+    done
+}
+
+case "$1" in
+    -cleanlog) thelogparser "$@"
+	       ;;
+    -dotest) thetest "$@"
+	     ;;
+    *) echo "bad cmd to $0: $1" 1>&2
+       ;;
+esac
 
 # first results:
 # host   nested

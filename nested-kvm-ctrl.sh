@@ -450,9 +450,10 @@ do-cleanlog()
     while [ "$ln" != "" ] || read -r ln; do
 	sendln=""
 	case "$ln" in
-	    $SESSION_START) log-newsection "$ln"
-					 inpostsection=false
-					 ;;
+	    $SESSION_START)
+		log-newsection "$ln"
+		inpostsection=false
+		;;
 	    $info_section_START)
 		log-infosection "$ln"
 		;;
@@ -482,14 +483,16 @@ do-cleanlog()
 		    echo "$ln"
 		fi
 		;;
-	    $postout_START) inpostsection=true
-				       ;;
-	    *real*) elapsetime="${ln#*real}"
-		    $inpostsection && echo "ELAPSE=$elapsetime"
-		    ;;
+	    $postout_START)
+		inpostsection=true
+		;;
+	    *real*)
+		elapsetime="${ln#*real}"
+		$inpostsection && echo "ELAPSE=$elapsetime"
+		;;
 	    *)
 		: # ignore
-		    ;;
+		;;
 	esac
 	ln="$sendln" # maybe push something back on the input stream (like ungetc)
     done <"$thelog"
